@@ -16,7 +16,7 @@ struct RiskGraph {
 
 impl RiskGraph {
     fn compute_smallest_risk_path(&self) -> usize {
-        let mut unvisited = Vec::<Point>::new();
+        let mut unvisited = BinaryHeap::<RiskPoint>::new();
         let mut node_weights = HashMap::<Point, usize>::new();
         let mut path = HashMap::<Point, usize>::new();
 
@@ -29,20 +29,17 @@ impl RiskGraph {
             for col in 0..self.graph[row].len() {
                 let point = Point{x: col, y: row};
                 node_weights.entry(point).or_insert(i32::MAX.try_into().unwrap());
-                unvisited.push(point);
             }
         }
 
         let start_risk = node_weights.entry(start_point).or_insert(0);
         *start_risk = 0;
+        unvisited.push(RiskPoint{x: start_point.x, y: start_point.y, risk: 0});
 
         //dijijijkstras
         while !unvisited.is_empty() {
-            unvisited.sort_by(|p1, p2| {
-                node_weights.get(&p2).unwrap().cmp(node_weights.get(&p1).unwrap())
-            });
-
-            let current_point = unvisited.last().unwrap();
+            let current_point = unvisited.pop().unwrap();
+            let current_point: Point = Point {x: current_point.x, y: current_point.y};
 
             if current_point.x == end_point.x && current_point.y == end_point.y {
                 let risk = node_weights.get(&current_point).unwrap();
@@ -54,9 +51,6 @@ impl RiskGraph {
             let current_risk = node_weights.get(&current_point).unwrap().to_owned();
 
             for neighbour in neighbours {
-                if !unvisited.contains(&neighbour) {
-                    continue;
-                }
                 let risk = node_weights.entry(neighbour).or_default();
                 let edge_risk = self.get_risk_level_for_point(&neighbour).unwrap();
 
@@ -65,18 +59,9 @@ impl RiskGraph {
                 if new_risk < *risk {
                     *risk = new_risk;
                     path.entry(neighbour).or_insert(*risk);
+                    unvisited.push(RiskPoint {x: neighbour.x, y: neighbour.y, risk: *risk});
                 }
             }
-
-            let mut visited_index = 0;
-            for (index, p) in unvisited.iter().enumerate() {
-                if p.x == current_point.x && p.y == current_point.y {
-                    visited_index = index;
-                    break;
-                }
-            }
-
-            unvisited.remove(visited_index);
         }
         0
     }
@@ -90,7 +75,7 @@ impl RiskGraph {
         }
 
         //down
-        if point.y < self.graph.len() {
+        if point.y < self.graph.len()-1 {
             points.push(Point{x: point.x, y: point.y +1});
         }
 
@@ -100,7 +85,7 @@ impl RiskGraph {
         }
 
         //down
-        if point.x < self.graph[point.y].len() {
+        if point.x < self.graph[point.y].len()-1 {
             points.push(Point{x: point.x +1, y: point.y});
         }
 
