@@ -104,8 +104,32 @@ impl RiskGraph {
         Some(self.graph[point.y][point.x])
     }
 
-    fn update_risk_for_point(&mut self, point: &Point, risk: usize) {
-        self.graph[point.y][point.x] = risk;
+    fn expand(&mut self) {
+        let mut new_graph = Vec::<Vec<usize>>::new();
+        let width = self.graph[0].len();
+        let height = self.graph.len();
+        let mut j = 0;
+        for row in 0..self.graph.len() * 5 {
+            let mut new_row = Vec::<usize>::new();
+            for col in 0..self.graph[0].len() * 5 {
+                let i = col / width;
+                let j = row / height;
+                let original_col = col % width;
+                let original_row = row % height;
+
+
+                let original_value = self.graph[original_row][original_col];
+
+                let mut value = (original_value + i + j);
+                if value > 9 {
+                    value = value % 9;
+                }
+                new_row.push(value);
+            }
+            new_graph.push(new_row);
+        }
+
+        self.graph = new_graph;
     }
 }
 
@@ -136,12 +160,29 @@ fn part_one(input: &str) -> usize {
     risk_graph.compute_smallest_risk_path()
 }
 
+fn part_two(input: &str) -> usize {
+    let mut risk_graph: RiskGraph = input.trim().parse().expect("Error parsing Risk Graph");
+    risk_graph.expand();
+
+    // for row in &risk_graph.graph {
+    //     for col in row {
+    //         print!("{}", col);
+    //     }
+    //     println!();
+    // }
+
+    risk_graph.compute_smallest_risk_path()
+}
+
 fn main() {
     let mut buffer = String::new();
     io::stdin().read_to_string(&mut buffer).expect("Error reading input");
 
     let result = part_one(&buffer);
     println!("Day 15 part one: {}", result);
+
+    let result = part_two(&buffer);
+    println!("Day 15 part two: {}", result);
 }
 
 #[test]
@@ -157,6 +198,21 @@ fn test_part_one() {
 1293138521
 2311944581");
     assert_eq!(40, part_one(&input));
+}
+
+#[test]
+fn test_part_two() {
+    let input = String::from("1163751742
+1381373672
+2136511328
+3694931569
+7463417111
+1319128137
+1359912421
+3125421639
+1293138521
+2311944581");
+    assert_eq!(315, part_two(&input));
 }
 
 struct RiskPoint {
